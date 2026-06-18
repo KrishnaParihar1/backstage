@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-import { useCallback } from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { useCallback, useEffect, useState } from 'react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { mockApis, TestApiProvider } from '@backstage/frontend-test-utils';
 import {
   useAnalytics,
   createRouteRef,
   createExternalRouteRef,
   useRouteRef,
+  identityApiRef,
+  useApi,
 } from '@backstage/frontend-plugin-api';
 import { Routes, Route } from 'react-router-dom';
 import { renderInTestApp } from './renderInTestApp';
@@ -148,5 +150,34 @@ describe('renderInTestApp', () => {
     });
 
     expect(screen.getByText('Link: /items/test')).toBeInTheDocument();
+  });
+
+  it('should use the overridden identity API instead of the default proxy', async () => {
+    const IdentityPage = () => {
+      const identityApi = useApi(identityApiRef);
+      const [userEntityRef, setUserEntityRef] = useState<string>();
+
+      useEffect(() => {
+        identityApi
+          .getBackstageIdentity()
+          .then(identity => setUserEntityRef(identity.userEntityRef));
+      }, [identityApi]);
+
+      return <div>{userEntityRef ?? 'Loading...'}</div>;
+    };
+
+    renderInTestApp(<IdentityPage />, {
+      apis: [
+        mockApis.identity({
+          userEntityRef: 'user:default/i-just-made-this-up',
+        }),
+      ],
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('user:default/i-just-made-this-up'),
+      ).toBeInTheDocument();
+    });
   });
 });

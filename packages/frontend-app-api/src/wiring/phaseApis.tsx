@@ -214,6 +214,10 @@ export function createPhaseApis(options: {
   );
   const identityProxy = new PreparedAppIdentityProxy();
   const phaseApiRegistry = new FrontendApiRegistry();
+  // Built-in phase APIs are registered first, then static factories (which
+  // include test/dev overrides such as `apis` passed to `renderInTestApp`)
+  // are applied with `setAll` so they take precedence instead of being
+  // silently dropped by `registerAll` when an id collides, e.g. identityApiRef.
   phaseApiRegistry.registerAll([
     createApiFactory(appTreeApiRef, appTreeApi),
     ...(options.includeConfigApi
@@ -221,8 +225,8 @@ export function createPhaseApis(options: {
       : []),
     createApiFactory(routeResolutionApiRef, routeResolutionApi),
     createApiFactory(identityApiRef, identityProxy),
-    ...options.staticFactories,
   ]);
+  phaseApiRegistry.setAll(options.staticFactories);
 
   const apis = new FrontendApiResolver({
     primaryRegistry: phaseApiRegistry,
