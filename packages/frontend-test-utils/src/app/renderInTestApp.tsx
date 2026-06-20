@@ -204,17 +204,11 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     }
   }
 
-<<<<<<< HEAD
-  const apiFactoryOverrides = (options?.apis ?? []).map(entry => 
-    getMockApiFactory(entry)
-    || createApiFactory(...entry as readonly [ApiRef<any>, any]));
-=======
   const apiFactoryOverrides = (options?.apis ?? []).map(
     entry =>
       getMockApiFactory(entry) ??
       createApiFactory(...(entry as readonly [ApiRef<any>, any])),
   );
->>>>>>> 04c79549de (fix(frontend-test-utils): apply identity mocks before guest fallback in renderInTestApp)
   const identityOverrideFactory = apiFactoryOverrides.find(
     factory => factory.api.id === identityApiRef.id,
   );
