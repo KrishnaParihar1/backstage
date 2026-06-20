@@ -206,14 +206,9 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     }
   }
 
-  const apiFactoryOverrides = (options?.apis ?? []).map(entry => {
-    const mockFactory = getMockApiFactory(entry);
-    if (mockFactory) {
-      return mockFactory;
-    }
-    const [apiRef, implementation] = entry as readonly [ApiRef<any>, any];
-    return createApiFactory(apiRef, implementation);
-  });
+  const apiFactoryOverrides = (options?.apis ?? []).map(entry => 
+    getMockApiFactory(entry)
+    || createApiFactory(...entry as readonly [ApiRef<any>, any]));
   const identityOverrideFactory = apiFactoryOverrides.find(
     factory => factory.api.id === identityApiRef.id,
   );
