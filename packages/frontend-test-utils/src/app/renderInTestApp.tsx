@@ -39,8 +39,6 @@ import appPlugin from '@backstage/plugin-app';
 import { getMockApiFactory } from '../apis/MockWithApiFactory';
 // eslint-disable-next-line @backstage/no-relative-monorepo-imports
 import type { CreateSpecializedAppInternalOptions } from '../../../frontend-app-api/src/wiring/createSpecializedApp';
-// eslint-disable-next-line @backstage/no-relative-monorepo-imports
-import type { AppIdentityProxy } from '../../../core-app-api/src/apis/implementations/IdentityApi/AppIdentityProxy';
 import { TestApiPairs } from '../apis/TestApiProvider';
 import { OpaqueExternalRouteRef } from '@internal/frontend';
 
@@ -206,9 +204,17 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     }
   }
 
+<<<<<<< HEAD
   const apiFactoryOverrides = (options?.apis ?? []).map(entry => 
     getMockApiFactory(entry)
     || createApiFactory(...entry as readonly [ApiRef<any>, any]));
+=======
+  const apiFactoryOverrides = (options?.apis ?? []).map(
+    entry =>
+      getMockApiFactory(entry) ??
+      createApiFactory(...(entry as readonly [ApiRef<any>, any])),
+  );
+>>>>>>> 04c79549de (fix(frontend-test-utils): apply identity mocks before guest fallback in renderInTestApp)
   const identityOverrideFactory = apiFactoryOverrides.find(
     factory => factory.api.id === identityApiRef.id,
   );
@@ -255,7 +261,7 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     ]),
     __internal: options?.apis && {
       apiFactoryOverrides: apiFactoryOverrides.filter(
-        factory => factory !== identityOverrideFactory,
+        factory => factory.api.id !== identityApiRef.id,
       ),
     },
     bindRoutes:
@@ -274,10 +280,13 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     // setTarget is now idempotent (first write wins), so we just need to
     // set it before AppRouter's own guest-identity fallback does, which
     // happens during this same synchronous render call.
-    const proxy = (app.apis.get(identityApiRef as any) as any) as
-      | AppIdentityProxy
-      | undefined;
-    if (proxy && !proxy.isTargetSet()) {
+    const proxy = app.apis.get(identityApiRef as any) as any;
+    if (
+      proxy &&
+      typeof proxy.isTargetSet === 'function' &&
+      typeof proxy.setTarget === 'function' &&
+      !proxy.isTargetSet()
+    ) {
       proxy.setTarget(identityOverrideFactory.factory({}), {
         signOutTargetUrl: '/',
       });
