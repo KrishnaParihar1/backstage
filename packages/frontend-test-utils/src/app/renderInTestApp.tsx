@@ -39,6 +39,8 @@ import appPlugin from '@backstage/plugin-app';
 import { getMockApiFactory } from '../apis/MockWithApiFactory';
 // eslint-disable-next-line @backstage/no-relative-monorepo-imports
 import type { CreateSpecializedAppInternalOptions } from '../../../frontend-app-api/src/wiring/createSpecializedApp';
+// eslint-disable-next-line @backstage/no-relative-monorepo-imports
+import { getBasePath } from '../../../frontend-app-api/src/routing/getBasePath';
 import { TestApiPairs } from '../apis/TestApiProvider';
 import { OpaqueExternalRouteRef } from '@internal/frontend';
 
@@ -245,14 +247,16 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     features.push(...options.features);
   }
 
+  const config = ConfigReader.fromConfigs([
+    {
+      context: 'render-config',
+      data: options?.config ?? DEFAULT_MOCK_CONFIG,
+    },
+  ]);
+
   const app = prepareSpecializedApp({
     features,
-    config: ConfigReader.fromConfigs([
-      {
-        context: 'render-config',
-        data: options?.config ?? DEFAULT_MOCK_CONFIG,
-      },
-    ]),
+    config,
     __internal: options?.apis && {
       apiFactoryOverrides: apiFactoryOverrides.filter(
         factory => factory.api.id !== identityApiRef.id,
@@ -275,16 +279,9 @@ export function renderInTestApp<const TApiPairs extends any[] = any[]>(
     // set it before AppRouter's own guest-identity fallback does, which
     // happens during this same synchronous render call.
     const proxy = app.apis.get(identityApiRef as any) as any;
-    if (
-      proxy &&
-      typeof proxy.isTargetSet === 'function' &&
-      typeof proxy.setTarget === 'function' &&
-      !proxy.isTargetSet()
-    ) {
-      proxy.setTarget(identityOverrideFactory.factory({}), {
-        signOutTargetUrl: '/',
-      });
-    }
+    proxy?.setTarget?.(identityOverrideFactory.factory({}), {
+      signOutTargetUrl: getBasePath(config) || '/',
+    });
   }
 
   return render(
